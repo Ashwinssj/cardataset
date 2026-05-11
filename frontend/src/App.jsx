@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import TimeChart from './components/TimeChart';
+import AnomalyPanel from './components/AnomalyPanel';
 import { Activity, Car, Gauge, Key, Upload, CheckCircle, Trash2 } from 'lucide-react';
 import './index.css';
 
@@ -212,6 +213,8 @@ function App() {
         <TimeChart type="health" timeSpan={timeSpan} selectedDate={selectedDate} title="Car Health Events" refreshKey={refreshKey} />
         <TimeChart type="behavior" timeSpan={timeSpan} selectedDate={selectedDate} title="Driver Behavior Events" refreshKey={refreshKey} />
       </div>
+
+      <AnomalyPanel timeSpan={timeSpan} selectedDate={selectedDate} refreshKey={refreshKey} />
     </div>
   );
 }

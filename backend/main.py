@@ -386,6 +386,92 @@ def get_driver_behavior_over_time():
     finally:
         conn.close()
 
+@app.route("/api/anomalies", methods=["GET"])
+def get_anomalies():
+    group_by = request.args.get('group_by', 'day')
+    specific_date = request.args.get('date', '')
+    
+    conn = get_db_connection()
+    try:
+        # Determine the time span based on group_by or specific_date
+        where_clause = ""
+        if specific_date:
+            where_clause = f"WHERE strftime('%Y-%m-%d', timestamp) = '{specific_date}'"
+        else:
+            # Get the latest timestamp to find the window
+            max_ts_df = pd.read_sql("SELECT MAX(timestamp) as max_ts FROM obd_metrics", conn)
+            max_ts_str = max_ts_df['max_ts'].iloc[0]
+            if max_ts_str:
+                max_ts = pd.to_datetime(max_ts_str)
+                if group_by == 'hour':
+                    start_ts = max_ts - timedelta(hours=1)
+                elif group_by == 'day':
+                    start_ts = max_ts - timedelta(days=1)
+                elif group_by == 'week':
+                    start_ts = max_ts - timedelta(weeks=1)
+                elif group_by == 'month':
+                    start_ts = max_ts - timedelta(days=30)
+                else:
+                    start_ts = max_ts - timedelta(days=1)
+                start_ts_str = start_ts.strftime('%Y-%m-%d %H:%M:%S')
+                where_clause = f"WHERE timestamp >= '{start_ts_str}'"
+        
+        # Load the relevant data
+        query = f"SELECT timestamp, {', '.join(FEATURES)} FROM obd_metrics {where_clause} ORDER BY timestamp ASC"
+        df = pd.read_sql(query, conn)
+        
+        if df.empty:
+            return jsonify([])
+        
+        # Detect sudden spikes using a rolling Z-score
+        window_size = 10
+        anomalies = []
+        
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce')
+        
+        for feature in FEATURES:
+            if feature not in df.columns:
+                continue
+            
+            # Calculate rolling mean and std on the PREVIOUS records to avoid the spike skewing its own statistics
+            # We use shift(1) so the current row is compared against the window of previous rows.
+            rolling_mean = df[feature].shift(1).rolling(window=window_size, min_periods=1).mean().bfill()
+            rolling_std = df[feature].shift(1).rolling(window=window_size, min_periods=1).std().fillna(0).bfill()
+            
+            # Z-score represents how many standard deviations a value is from the mean
+            z_scores = (df[feature] - rolling_mean) / (rolling_std + 1e-5)
+            
+            # Find indices where the absolute z-score is > 2.5
+            spike_indices = df.index[z_scores.abs() > 2.5].tolist()
+            
+            for idx in spike_indices:
+                val = float(df.at[idx, feature])
+                avg_val = float(rolling_mean[idx])
+                # Skip trivial noise anomalies
+                if abs(val - avg_val) < 1.0 and feature not in ['THROTTLE', 'ENGINE_LOAD']:
+                    continue
+                    
+                anomalies.append({
+                    'timestamp': df.at[idx, 'timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
+                    'system': feature.replace('_', ' ').title(),
+                    'value': round(val, 2),
+                    'average': round(avg_val, 2),
+                    'severity': round(float(z_scores.abs()[idx]), 2),
+                    'type': 'Spike' if z_scores[idx] > 0 else 'Drop'
+                })
+        
+        # Sort anomalies by severity descending
+        anomalies = sorted(anomalies, key=lambda x: x['severity'], reverse=True)
+        
+        # Return top 50 anomalies
+        return jsonify(anomalies[:50])
+    except Exception as e:
+        import traceback
+        print(f"ANOMALY ERROR:\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route("/api/clear", methods=["DELETE"])
 def clear_data():
     """Drop and recreate obd_metrics so users start fresh with the correct schema."""
