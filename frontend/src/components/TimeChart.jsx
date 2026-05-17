@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity, Car } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const COLORS = {
   Good: '#10b981', // Emerald
@@ -28,14 +29,19 @@ const CustomTooltip = ({ active, payload, label }) => {
 const TimeChart = ({ type, timeSpan, title, refreshKey, selectedDate }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        let url = `http://localhost:8080/api/${type === 'health' ? 'car_health' : 'driver_behavior'}?group_by=${timeSpan.toLowerCase()}`;
+        let url = `http://localhost:8080/api/${type === 'health' ? 'car_health' : 'driver_behavior'}/?group_by=${timeSpan.toLowerCase()}`;
         if (selectedDate) url += `&date=${selectedDate}`;
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         const json = await res.json();
         const formatted = json.map(item => ({
@@ -49,8 +55,10 @@ const TimeChart = ({ type, timeSpan, title, refreshKey, selectedDate }) => {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [type, timeSpan, refreshKey, selectedDate]);
+    if (token) {
+      fetchData();
+    }
+  }, [type, timeSpan, refreshKey, selectedDate, token]);
 
   return (
     <div className="glass-panel chart-card">

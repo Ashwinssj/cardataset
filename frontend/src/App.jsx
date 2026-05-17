@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import TimeChart from './components/TimeChart';
 import AnomalyPanel from './components/AnomalyPanel';
-import { Activity, Car, Gauge, Key, Upload, CheckCircle, Trash2 } from 'lucide-react';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Activity, Car, Gauge, Key, Upload, CheckCircle, Trash2, LogOut } from 'lucide-react';
 import './index.css';
 
-function App() {
+function Dashboard() {
   const [timeSpan, setTimeSpan] = useState('Month');
   const [selectedDate, setSelectedDate] = useState('');
   const [summary, setSummary] = useState(null);
@@ -13,26 +17,42 @@ function App() {
   const [clearing, setClearing] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { token, logout, user } = useAuth();
+
+  // Helper to fetch with token
+  const authFetch = useCallback((url, options = {}) => {
+    const headers = { ...options.headers };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+  }, [token]);
 
   // Fetch available dates for the date picker helper
   const fetchDates = useCallback(() => {
-    fetch('http://localhost:8080/api/dates')
-      .then(res => res.json())
+    authFetch('http://localhost:8080/api/dates/')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch dates');
+        return res.json();
+      })
       .then(dates => setAvailableDates(dates))
       .catch(console.error);
-  }, []);
+  }, [authFetch]);
 
   useEffect(() => { fetchDates(); }, [refreshKey, fetchDates]);
 
   // Fetch averages dynamically based on TimeSpan or Date
   useEffect(() => {
-    let url = `http://localhost:8080/api/averages?group_by=${timeSpan.toLowerCase()}`;
+    let url = `http://localhost:8080/api/averages/?group_by=${timeSpan.toLowerCase()}`;
     if (selectedDate) url += `&date=${selectedDate}`;
-    fetch(url)
-      .then(res => res.json())
+    authFetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch averages');
+        return res.json();
+      })
       .then(data => setSummary(data))
       .catch(console.error);
-  }, [timeSpan, selectedDate, refreshKey]);
+  }, [timeSpan, selectedDate, refreshKey, authFetch]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -45,7 +65,7 @@ function App() {
     setUploadSuccess('');
     
     try {
-      const res = await fetch('http://localhost:8080/api/upload', {
+      const res = await authFetch('http://localhost:8080/api/upload/', {
         method: 'POST',
         body: formData,
       });
@@ -69,7 +89,7 @@ function App() {
     if (!window.confirm('This will delete ALL stored OBD data. You will need to re-upload your CSV files. Continue?')) return;
     setClearing(true);
     try {
-      const res = await fetch('http://localhost:8080/api/clear', { method: 'DELETE' });
+      const res = await authFetch('http://localhost:8080/api/clear/', { method: 'DELETE' });
       const json = await res.json();
       if (res.ok) {
         setSelectedDate('');
@@ -94,6 +114,11 @@ function App() {
         </div>
         
         <div className="controls-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+          <div style={{ alignSelf: 'flex-end' }}>
+            <button onClick={logout} className="timeline-btn" style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)'}}>
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
           <div className="timeline-selector" style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
             
             <div style={{ position: 'relative', marginRight: '1rem' }}>
@@ -216,6 +241,35 @@ function App() {
 
       <AnomalyPanel timeSpan={timeSpan} selectedDate={selectedDate} refreshKey={refreshKey} />
     </div>
+  );
+}
+
+const ProtectedRoute = ({ children }) => {
+  const { user, token } = useAuth();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

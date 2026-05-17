@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Activity } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const AnomalyPanel = ({ timeSpan, selectedDate, refreshKey }) => {
   const [anomalies, setAnomalies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchAnomalies = async () => {
       setLoading(true);
       try {
-        let url = `http://localhost:8080/api/anomalies?group_by=${timeSpan.toLowerCase()}`;
+        let url = `http://localhost:8080/api/anomalies/?group_by=${timeSpan.toLowerCase()}`;
         if (selectedDate) url += `&date=${selectedDate}`;
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const data = await res.json();
         setAnomalies(data);
       } catch (err) {
@@ -20,8 +26,10 @@ const AnomalyPanel = ({ timeSpan, selectedDate, refreshKey }) => {
         setLoading(false);
       }
     };
-    fetchAnomalies();
-  }, [timeSpan, selectedDate, refreshKey]);
+    if (token) {
+      fetchAnomalies();
+    }
+  }, [timeSpan, selectedDate, refreshKey, token]);
 
   return (
     <div className="glass-panel chart-card" style={{ marginTop: '1rem' }}>

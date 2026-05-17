@@ -3,3 +3,9 @@ flask-cors
 pandas
 sqlalchemy
 scikit-learn
+django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+psycopg2-binary
+python-dotenv
