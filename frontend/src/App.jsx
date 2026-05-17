@@ -18,6 +18,8 @@ function Dashboard() {
   const [availableDates, setAvailableDates] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const { token, logout, user } = useAuth();
+  
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   // Helper to fetch with token
   const authFetch = useCallback((url, options = {}) => {
@@ -65,7 +67,7 @@ function Dashboard() {
     setUploadSuccess('');
     
     try {
-      const res = await authFetch('http://localhost:8080/api/upload/', {
+      const res = await authFetch(`${API_BASE_URL}/api/upload/`, {
         method: 'POST',
         body: formData,
       });

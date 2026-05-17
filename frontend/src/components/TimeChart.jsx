@@ -35,7 +35,8 @@ const TimeChart = ({ type, timeSpan, title, refreshKey, selectedDate }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        let url = `http://localhost:8080/api/${type === 'health' ? 'car_health' : 'driver_behavior'}/?group_by=${timeSpan.toLowerCase()}`;
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        let url = `${API_BASE_URL}/api/${type === 'health' ? 'car_health' : 'driver_behavior'}/?group_by=${timeSpan.toLowerCase()}`;
         if (selectedDate) url += `&date=${selectedDate}`;
         const res = await fetch(url, {
           headers: {

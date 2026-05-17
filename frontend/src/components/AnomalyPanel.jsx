@@ -11,7 +11,8 @@ const AnomalyPanel = ({ timeSpan, selectedDate, refreshKey }) => {
     const fetchAnomalies = async () => {
       setLoading(true);
       try {
-        let url = `http://localhost:8080/api/anomalies/?group_by=${timeSpan.toLowerCase()}`;
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        let url = `${API_BASE_URL}/api/anomalies/?group_by=${timeSpan.toLowerCase()}`;
         if (selectedDate) url += `&date=${selectedDate}`;
         const res = await fetch(url, {
           headers: {

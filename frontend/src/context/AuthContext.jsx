@@ -19,7 +19,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await fetch('http://localhost:8080/api/token/', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +41,8 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (username, password) => {
     try {
-      const response = await fetch('http://localhost:8080/api/register/', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

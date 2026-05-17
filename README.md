@@ -90,5 +90,41 @@ npm run dev
 
 ---
 
+## 🌍 Free Deployment Guide (Vercel + Render + Neon/Supabase)
+
+This project is fully configured for production deployment using industry-standard free tiers.
+
+### 1. Database (Neon or Supabase)
+Render's free PostgreSQL databases expire after 90 days. Instead, use a permanent free database:
+1. Sign up for [Neon.tech](https://neon.tech/) or [Supabase](https://supabase.com/).
+2. Create a new PostgreSQL database.
+3. Keep the provided credentials handy (`Host`, `User`, `Password`, `Database Name`).
+
+### 2. Backend (Render.com)
+1. Sign up at [Render](https://render.com/) and connect your GitHub.
+2. Click **New > Web Service** and select your repository.
+3. **Root Directory**: `backend`
+4. **Build Command**: `pip install -r requirements.txt && python manage.py migrate`
+5. **Start Command**: `gunicorn obd_project.wsgi:application`
+6. Add the following **Environment Variables**:
+   - `DB_NAME`: (Your Neon/Supabase database name)
+   - `DB_USER`: (Your Neon/Supabase user)
+   - `DB_PASSWORD`: (Your Neon/Supabase password)
+   - `DB_HOST`: (Your Neon/Supabase host URL)
+   - `DB_PORT`: `5432`
+   - `PYTHON_VERSION`: `3.12.0`
+7. Click **Deploy**. Copy the live URL Render gives you (e.g., `https://your-backend.onrender.com`).
+
+### 3. Frontend (Vercel)
+1. Sign up at [Vercel](https://vercel.com/) and connect your GitHub.
+2. Click **Add New > Project** and select this repository.
+3. Open **Environment Variables** before clicking deploy and add:
+   - Key: `VITE_API_URL`
+   - Value: `https://your-backend.onrender.com` *(The URL you got from Render)*
+4. Make sure the **Root Directory** is set to `frontend`.
+5. Click **Deploy**. Vercel will automatically detect Vite and build your app!
+
+---
+
 ## 📝 Usage Note
 When uploading a CSV, ensure the file contains the required OBD-II headers (e.g., `ENGINE_RPM`, `VEHICLE_SPEED`, etc.). If the file includes a `timestamp` column, the dashboard will use it for precision analysis. Otherwise, it will distribute data across today's hours based on `ENGINE_RUN_TINE`. You must create an account and log in before accessing the dashboard or uploading data.
