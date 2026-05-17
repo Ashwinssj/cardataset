@@ -90,37 +90,31 @@ npm run dev
 
 ---
 
-## 🌍 Free Deployment Guide (Vercel + Render + Neon/Supabase)
+## 🌍 Premium Deployment Guide (Free via GitHub Student Pack)
 
-This project is fully configured for production deployment using industry-standard free tiers.
+Using your GitHub Student Developer Pack, you can host the Django backend and PostgreSQL database on **DigitalOcean App Platform** for free using your $200 credits.
 
-### 1. Database (Neon or Supabase)
-Render's free PostgreSQL databases expire after 90 days. Instead, use a permanent free database:
-1. Sign up for [Neon.tech](https://neon.tech/) or [Supabase](https://supabase.com/).
-2. Create a new PostgreSQL database.
-3. Keep the provided credentials handy (`Host`, `User`, `Password`, `Database Name`).
+### 1. Backend & Database (DigitalOcean)
+1. Go to your **GitHub Student Developer Pack** and claim your DigitalOcean credits.
+2. Log into DigitalOcean and go to **Apps** -> **Create App**.
+3. Connect your GitHub account and select this repository.
+4. In the "Resources" screen, DigitalOcean will auto-detect your code. 
+   - Click **Add a Database** (Choose PostgreSQL). DigitalOcean will automatically create a `DATABASE_URL` environment variable and securely link it.
+5. Click **Edit** on your Web Service:
+   - **Source Directory**: `backend`
+   - **Build Command**: `pip install -r requirements.txt && python manage.py migrate`
+   - **Run Command**: `gunicorn obd_project.wsgi:application`
+   - Set the HTTP Port to `8080`.
+6. Click **Next** and deploy the app!
+7. Once deployed, copy the live URL of your app (e.g., `https://your-app.ondigitalocean.app`).
 
-### 2. Backend (Render.com)
-1. Sign up at [Render](https://render.com/) and connect your GitHub.
-2. Click **New > Web Service** and select your repository.
-3. **Root Directory**: `backend`
-4. **Build Command**: `pip install -r requirements.txt && python manage.py migrate`
-5. **Start Command**: `gunicorn obd_project.wsgi:application`
-6. Add the following **Environment Variables**:
-   - `DB_NAME`: (Your Neon/Supabase database name)
-   - `DB_USER`: (Your Neon/Supabase user)
-   - `DB_PASSWORD`: (Your Neon/Supabase password)
-   - `DB_HOST`: (Your Neon/Supabase host URL)
-   - `DB_PORT`: `5432`
-   - `PYTHON_VERSION`: `3.12.0`
-7. Click **Deploy**. Copy the live URL Render gives you (e.g., `https://your-backend.onrender.com`).
-
-### 3. Frontend (Vercel)
+### 2. Frontend (Vercel)
+Keep your frontend on Vercel—it's the fastest and best platform for React.
 1. Sign up at [Vercel](https://vercel.com/) and connect your GitHub.
 2. Click **Add New > Project** and select this repository.
 3. Open **Environment Variables** before clicking deploy and add:
    - Key: `VITE_API_URL`
-   - Value: `https://your-backend.onrender.com` *(The URL you got from Render)*
+   - Value: `https://your-app.ondigitalocean.app` *(The URL you got from DigitalOcean)*
 4. Make sure the **Root Directory** is set to `frontend`.
 5. Click **Deploy**. Vercel will automatically detect Vite and build your app!
 
